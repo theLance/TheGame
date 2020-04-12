@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">TestApp</string>
+    <string name="text_hint">cica</string>
+    <string name="click">GO</string>
+</resources>
