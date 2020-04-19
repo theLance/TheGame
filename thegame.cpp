@@ -40,8 +40,26 @@ std::string normalize(const std::string& str) {
     res.resize(it - res.begin());
 
     std::transform(res.begin(), res.end(), res.begin(),
-
         [](unsigned char c){ return (!std::isalpha(c)) ? ' ' : std::tolower(c); });
+    std::string cica(res);
+    res.clear();
+    bool prevWasSpace = false;
+    for(auto c : cica)
+    {
+        if(std::isspace(c))
+        {
+            if(prevWasSpace)
+            {
+                continue;
+            }
+            prevWasSpace = true;
+        }
+        else if (std::isalpha(c))
+        {
+            prevWasSpace = false;
+        }
+        res.push_back(c);
+    }
     return res;
 }
 
