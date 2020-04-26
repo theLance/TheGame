@@ -7,65 +7,15 @@
 #include <algorithm>
 
 
+typedef std::vector<std::string> WordVec;
+typedef std::set<std::string> WordSet;
 const std::string CACHE("word_cache");
 const std::size_t CACHE_SIZE = 500;
 
 const std::string MOVIES = "movie_titles.txt";
 
 
-
-
-std::vector<std::string> loadList(const std::string& filename) {
-    std::vector<std::string> words;
-    std::ifstream file;
-    file.open(filename.c_str());
-    while(file) {
-        std::string line;
-        file >> line;
-        words.push_back(line);
-    }
-    file.close();
-    return words;
-}
-
-std::vector<std::string> loadCache(const std::string& option) {
-    if(option == "m")
-        return std::vector<std::string>();
-    return loadList(CACHE);
-}
-
-std::string normalize(const std::string& str) {
-    std::string res(str);
-    auto it = std::copy_if(str.begin(), str.end(), res.begin(), [](char c){ return !std::isspace(c); });
-    res.resize(it - res.begin());
-
-    std::transform(res.begin(), res.end(), res.begin(),
-        [](unsigned char c){ return (!std::isalpha(c)) ? ' ' : std::tolower(c); });
-    std::string cica(res);
-    res.clear();
-    bool prevWasSpace = false;
-    for(auto c : cica)
-    {
-        if(std::isspace(c))
-        {
-            if(prevWasSpace)
-            {
-                continue;
-            }
-            prevWasSpace = true;
-        }
-        else if (std::isalpha(c))
-        {
-            prevWasSpace = false;
-        }
-        res.push_back(c);
-    }
-    return res;
-}
-
-
-
-void split(std::vector<std::string>& out, const std::string& in) {
+void split(WordVec& out, const std::string& in) {
     if(in.empty())
         return;
 
@@ -81,6 +31,86 @@ void split(std::vector<std::string>& out, const std::string& in) {
     }
 }
 
+class LineFormatter
+{
+public:
+    LineFormatter(const std::string& l) : line(l)
+    {
+        removeLeadingSpaces();
+        removeSpecialChars();
+        removeMultipleSpaces();
+        removeTrailingSpace();
+
+        split(words, line);
+    }
+
+    WordVec getWords() const {
+        return words;
+    }
+private:
+    void removeLeadingSpaces() {
+        while(!line.empty() && std::isspace(line[0]))
+            line.erase(0, 1);
+    }
+
+    bool isAcceptableCharacter(char c) {
+        static const std::string acceptable("'-_\"");
+        return ( std::isalpha(c) || std::any_of(acceptable.begin(), acceptable.end(), [c](char k){ return k == c; }) );
+    }
+
+    void removeSpecialChars() {
+        std::transform(line.begin(), line.end(), line.begin(),
+                       [this](unsigned char c){ return (isAcceptableCharacter(c)) ? std::tolower(c) : ' '; });
+    }
+
+    void removeMultipleSpaces() {
+        auto newEnd = std::unique(line.begin(), line.end(), [](char l, char r){ return std::isspace(l) && std::isspace(r);});
+        line.erase(newEnd, line.end());
+    }
+
+    void removeTrailingSpace() {
+        while(!line.empty() && std::isspace(line.back()))
+            line.pop_back();
+    }
+
+    std::string line;
+    WordVec words;
+};
+
+
+WordVec makeUnique(const WordVec& one, const WordVec& other)
+{
+    WordSet wset(one.begin(), one.end());
+    wset.insert(other.begin(), other.end());
+    return { wset.begin(), wset.end() };
+}
+
+WordVec loadList(const std::string& filename) {
+    WordVec words;
+    std::ifstream file;
+    file.open(filename.c_str());
+    while(file) {
+        std::string line;
+        file >> line;
+        LineFormatter lf(line);
+        auto newWords = lf.getWords();
+        words.insert(words.end(), newWords.begin(), newWords.end());
+    }
+    file.close();
+
+    // make unique
+    auto uwords = makeUnique(words, {});
+    words.swap(uwords);
+    return words;
+}
+
+WordVec loadCache(const std::string& option) {
+    if(option == "m")
+        return std::vector<std::string>();
+    return loadList(CACHE);
+}
+
+
 class WordList
 {
 public:
@@ -92,6 +122,11 @@ public:
         : m_filename(filename)
         , m_list(list) {
     }
+    WordList(const WordList& wl)
+        : m_filename(wl.m_filename)
+        , m_list(wl.m_list)
+    {
+    }
 
     bool isIn(const std::string& item) const {
         auto iCompare = [](const std::string& a, const std::string& b){
@@ -99,9 +134,8 @@ public:
                               [](char c1, char c2){ return std::toupper(c1) == std::toupper(c2); });
         };
 
-        auto str = normalize(item);
         return std::find_if(m_list.begin(), m_list.end(),
-                            [&](const auto& a){ return iCompare(a, str); })
+                            [&](const auto& a){ return iCompare(a, item); })
                 != m_list.end();
     }
 
@@ -127,10 +161,10 @@ public:
     }
 
     void extend(const WordList& other) {
-    	std::set<std::string> unq;
+    	WordSet unq;
     	for(const auto& item : other.m_list) {
-            std::vector<std::string> tokens;
-            split(tokens, normalize(item));
+            WordVec tokens;
+            split(tokens, item);
             unq.insert(tokens.begin(), tokens.end());
     	}
     	unq.insert(m_list.begin(), m_list.end());
@@ -140,7 +174,10 @@ public:
 
     std::string pop() {
         if(m_list.empty())
+        {
+            std::cout << "There are no words in the word list" << std::endl;
             throw std::exception();
+        }
         unsigned en = m_list.size() - 1;
         std::mt19937 gen{m_rd()};
         std::uniform_int_distribution<unsigned> dist{ 0, en };
@@ -151,8 +188,28 @@ public:
     }
 private:
     std::string m_filename;
-    std::vector<std::string> m_list;
+    WordVec m_list;
     std::random_device m_rd;
+};
+
+class WordKing
+{
+public:
+    WordKing(WordList wlist)
+        : wl(wlist)
+        , current()
+    {}
+
+    WordVec gimme() {
+        current.push_back(wl.pop());
+        WordVec toSwapWith{current.begin() + 1, current.end()};
+        current.swap(toSwapWith);
+        return current;
+    }
+
+private:
+    WordList wl;
+    WordVec current;
 };
 
 std::string fileForChoice(const std::string& choice) {
@@ -187,17 +244,14 @@ int main()
     std::cout << "Choose 'm' for movie titles, "
           "'x' for The Game with Tudor's extended kamera dictionary"
           "'c' for The Game with 800 common words"
+          " will reeeeaaallly have to update this list...."
           ", press enter for The Game with the Extreme explosion deathwave list" << std::endl;
     std::string option;
     getline(std::cin, option);
 
     WordList wordList(fileForChoice(option));
     WordList cache(CACHE, loadCache(option));
-    if(option == "5") {
-    	std::cout << "extended..." << std::endl;
-		wordList.extend(WordList("movie_titles.txt"));
-    }
-    else if(option == "6") {
+    if(option == "6") {
     	std::cout << "extended2..." << std::endl;
 		wordList.extend(WordList("other.txt"));
     }
@@ -213,7 +267,7 @@ int main()
         if(select == ".")
            cnt++;
         cache.add(word);
-        std::cout << "    " << word << "     " << cnt << std::endl;
+        std::cout << "    [" << word << "]     " << cnt << std::endl;
     }
 
     return 0;
