@@ -57,9 +57,18 @@ public:
         return words;
     }
 private:
+    void removeLeadingSpaceFromWords() {
+        for(auto& word : words)
+            removeLeadingSpaces(word);
+    }
+
     void removeLeadingSpaces() {
-        while(!line.empty() && std::isspace(line[0]))
-            line.erase(0, 1);
+        removeLeadingSpaces(line);
+    }
+
+    void removeLeadingSpaces(std::string& str) {
+        while(!str.empty() && std::isspace(str[0]))
+            str.erase(0, 1);
     }
 
     bool isAcceptableCharacter(char c) {

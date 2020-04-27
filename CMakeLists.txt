@@ -5,4 +5,5 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/text.txt ${CMAKE_CURRENT_BINARY_DIR}/
 add_executable(TheGame main.cpp)
 add_executable(GameTests gametest.cpp thegame.hpp)
 
+add_library(GameLib STATIC thegame.cpp)
 
