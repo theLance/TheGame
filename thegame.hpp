@@ -107,7 +107,6 @@ WordVec loadList(const std::string& filename) {
     }
     file.close();
 
-    // make unique
     auto uwords = makeUnique(words, {});
     words.swap(uwords);
     return words;
@@ -240,7 +239,7 @@ std::string fileForChoice(const std::string& choice) {
     }
     if(choice == "p") {
         std::cout << "chosen corpus" << std::endl;
-        return "text.txt";
+        return "hamlet.txt";
     }
 
     std::cout << "Super badass ultimate triple dragon mega list" << std::endl;
