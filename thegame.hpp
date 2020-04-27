@@ -248,7 +248,7 @@ std::string fileForChoice(const std::string& choice) {
     }
     if(choice == "p") {
         std::cout << "chosen corpus" << std::endl;
-        return "hamlet.txt";
+        return "text.txt";
     }
 
     std::cout << "Super badass ultimate triple dragon mega list" << std::endl;
