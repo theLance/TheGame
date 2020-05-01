@@ -2,22 +2,28 @@
 
 #include <chrono>
 #include <thread>
+#include <conio.h>
 
-double TOTAL_TIME = 5;
+long long TOTAL_TIME = 90;
 
 class Timer
 {
 public:
     Timer() : startTime(std::chrono::steady_clock::now()) {}
-    auto elapsed() {
+    auto elapsed() const {
         auto now = std::chrono::steady_clock::now();
         return std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count();
     }
 
-    bool isOver() {
+    bool isOver() const {
         std::cout << "elapsed=" << elapsed() << std::endl;
         return elapsed() >= TOTAL_TIME;
     }
+
+    auto remaining() const {
+        return (TOTAL_TIME - elapsed());
+    }
+
 private:
     std::chrono::time_point<std::chrono::steady_clock> startTime;
 };
@@ -28,13 +34,26 @@ public:
     struct GameOver{};
     DeathTimer() {
         std::thread timer([]() {
-            std::this_thread::sleep_for(std::chrono::seconds(5));
+            std::this_thread::sleep_for(std::chrono::seconds(TOTAL_TIME));
             throw GameOver();
         });
         timer.detach();
     }
 private:
 };
+
+void printScreen(const WordVec& current, double time)
+{
+    for(int i = 50; i != 0; i--)
+        std::cout << std::endl;
+    for(auto&& w : current) {
+        std::cout << "\n   [" << w << "]     ";
+    }
+    std::cout << time;
+    std::cout << std::endl;
+    std::cout << std::endl;
+
+}
 
 
 int main()
@@ -54,20 +73,22 @@ int main()
         wordList.extend(WordList("other.txt"));
     }
 
-    std::string select;
-    int cnt = 0;
-    //DeathTimer dt;
-    while(select != "q") {
+    WordVec words;
+    Timer timer;
+    DeathTimer deathCreeping;
+    double theTime = timer.remaining();
+    while(true) {
         auto word(wordList.pop());
         while(cache.isIn(word)) {
             word = wordList.pop();
         }
-        if(select == ".") {
-            cnt++;
-        }
+        words.push_back(word);
         cache.add(word);
-        std::cout << "    [" << word << "]     " << cnt << std::endl;
-        getline(std::cin, select);
+        theTime = timer.remaining();
+        printScreen(words, theTime);
+        char c = getch();
+        if(c == 'q')
+           break;
     }
     return 0;
 }
