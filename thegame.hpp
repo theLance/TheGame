@@ -13,9 +13,12 @@ typedef std::vector<std::string> WordVec;
 typedef std::set<std::string> WordSet;
 const std::string CACHE("word_cache");
 const std::size_t CACHE_SIZE = 500;
+const std::size_t WORDS_IN_RESULT_SET = 10;
 
 const std::string MOVIES = "movie_titles.txt";
 
+
+std::string fileForChoice(const std::string& choice);
 
 void split(WordVec& out, const std::string& in) {
     if(in.empty())
@@ -51,6 +54,8 @@ public:
         removeTrailingSpace();
 
         split(words, line);
+
+        removeLeadingSpaceFromWords();
     }
 
     WordVec getWords() const {
@@ -203,6 +208,7 @@ public:
         m_list.erase(m_list.begin() + selection);
         return item;
     }
+
 private:
     std::string m_filename;
     WordVec m_list;
@@ -212,21 +218,32 @@ private:
 class WordKing
 {
 public:
-    WordKing(WordList wlist)
-            : wl(wlist)
-            , current()
+    WordKing(const std::string& option)
+            : wordList(fileForChoice(option))
+            , cache(CACHE, loadCache(option))
     {}
 
     WordVec gimme() {
-        current.push_back(wl.pop());
-        WordVec toSwapWith{current.begin() + 1, current.end()};
-        current.swap(toSwapWith);
-        return current;
+        auto word(wordList.pop());
+        while(cache.isIn(word)) {
+            word = wordList.pop();
+        }
+        currentWords.push_back(word);
+        cache.add(word);
+        resizeCurrentWords();
+        return currentWords;
     }
 
 private:
-    WordList wl;
-    WordVec current;
+    void resizeCurrentWords() {
+        auto offset = std::max(currentWords.size(), WORDS_IN_RESULT_SET) - WORDS_IN_RESULT_SET;
+        WordVec swapper(currentWords.begin() + offset, currentWords.end());
+        currentWords.swap(swapper);
+    }
+
+    WordList wordList;
+    WordList cache;
+    WordVec currentWords;
 };
 
 std::string fileForChoice(const std::string& choice) {
