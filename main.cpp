@@ -3,8 +3,14 @@
 #include <chrono>
 #include <thread>
 #include <conio.h>
+#include <functional>
 
-long long TOTAL_TIME = 90;
+enum Time {
+    TOTAL_TIME = 90,
+    TURN_TIME = 5
+};
+
+bool TURN_BASED = true;
 
 class Timer
 {
@@ -28,18 +34,24 @@ private:
     std::chrono::time_point<std::chrono::steady_clock> startTime;
 };
 
-class DeathTimer
+struct GameOver{};
+
+static void csicsika(long long time) {
+    std::this_thread::sleep_for(std::chrono::seconds(time));
+}
+
+struct TickTimer
 {
-public:
-    struct GameOver{};
-    DeathTimer() {
-        std::thread timer([]() {
-            std::this_thread::sleep_for(std::chrono::seconds(TOTAL_TIME));
-            throw GameOver();
+    TickTimer(std::function<void()> func, Time roundTime, bool restartable) {
+        std::thread timer([&]() {
+            do {
+                //std::this_thread::sleep_for(std::chrono::seconds(roundTime));
+                csicsika(roundTime);
+                func();
+            } while(restartable);
         });
         timer.detach();
     }
-private:
 };
 
 void printScreen(const WordVec& current, double time)
@@ -72,7 +84,15 @@ int main()
 
     WordVec words;
     Timer timer;
-    DeathTimer deathCreeping;
+    std::function<void()> timerAction;
+    Time toDie = Time::TOTAL_TIME;
+    if(TURN_BASED) {
+        toDie = Time::TURN_TIME;
+        timerAction = [](){ std::cout << "+"; };
+    } else {
+        timerAction = [](){ throw GameOver(); };
+    }
+    TickTimer timerThingy(timerAction, toDie, TURN_BASED);
     WordKing king(option);
     double theTime = timer.remaining();
     while(true) {
