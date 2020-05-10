@@ -218,10 +218,15 @@ private:
 class WordKing
 {
 public:
+    struct GameOver{};
+
     WordKing(const std::string& option)
             : wordList(fileForChoice(option))
             , cache(CACHE, loadCache(option))
-    {}
+    {
+        if(option == "q")
+            endIt();
+    }
 
     WordVec gimme() {
         auto word(wordList.pop());
@@ -232,6 +237,10 @@ public:
         cache.add(word);
         //resizeCurrentWords();
         return currentWords;
+    }
+
+    void endIt() {
+        throw GameOver();
     }
 
 private:
@@ -264,11 +273,11 @@ std::string fileForChoice(const std::string& choice) {
         cache.dump({});
     }
     if(choice == "p") {
-        std::cout << "chosen corpus" << std::endl;
-        return "text.txt";
+        std::cout << "Super badass ultimate triple dragon mega list" << std::endl;
+        return "ultimate_turbo_swat_list.txt";
     }
 
-    std::cout << "Super badass ultimate triple dragon mega list" << std::endl;
-    return "ultimate_turbo_swat_list.txt";
+    std::cout << "chosen corpus" << std::endl;
+    return "text.txt";
 }
 
