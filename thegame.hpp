@@ -230,7 +230,7 @@ public:
         }
         currentWords.push_back(word);
         cache.add(word);
-        resizeCurrentWords();
+        //resizeCurrentWords();
         return currentWords;
     }
 
