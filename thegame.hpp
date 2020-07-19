@@ -108,7 +108,7 @@ WordVec makeUnique(const WordVec& one, const WordVec& other)
     return { wset.begin(), wset.end() };
 }
 
-WordVec loadList(const std::string& filename) {
+WordVec loadAnyFile(const std::string& filename) {
     WordVec words;
     std::ifstream file;
     file.open(filename.c_str());
@@ -120,7 +120,11 @@ WordVec loadList(const std::string& filename) {
         words.insert(words.end(), newWords.begin(), newWords.end());
     }
     file.close();
+    return words;
+}
 
+WordVec loadList(const std::string& filename) {
+    WordVec words(loadAnyFile(filename));
     auto uwords = makeUnique(words, {});
     words.swap(uwords);
     return words;
@@ -129,7 +133,7 @@ WordVec loadList(const std::string& filename) {
 WordVec loadCache(const std::string& option) {
     if(option == "m")
         return std::vector<std::string>();
-    return loadList(CACHE);
+    return loadAnyFile(CACHE);
 }
 
 
